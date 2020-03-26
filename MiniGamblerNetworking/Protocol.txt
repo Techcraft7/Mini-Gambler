@@ -1,0 +1,64 @@
+﻿ 
+ 
+ -- PACKETS--
+
+FORMAT:
+	byte ID
+	byte[] data
+
+	Notes:
+		"data" does not include the packet ID
+	
+ -- GENERIC PACKETS --
+
+ID 0 - Ping C->S
+	Server sends the data the client sent back to the client
+	Should be a timestamp when the packet was sent
+
+	Params:
+		byte ID = 0
+		byte[] data
+
+	Response:
+		byte[] data
+
+ID 1 - Create Room C->S
+	
+	Client sends this to the server to create a room
+	Server responds with a Room ID of type System.UInt32 (uing)
+
+	Params:
+		byte ID = 1
+		byte Players >= 2 && <= 10
+
+	Response:
+		uint RoomID
+
+	Notes:
+		RoomID is randomly generated
+		If RoomID is uint.MaxValue (0xFFFFFFFF) the player count is invalid
+
+		Sample C# code to create a RoomID:
+			Random rng = new Random();
+			byte[] b = new byte[4];
+			rng.NextBytes(b);
+			uint RoomID = BitConverter.ToUInt32(b);
+
+ID 2 - Join Room C->S
+
+	Client sends this to the server to join a room
+
+	Params:
+		byte ID = 2
+		uint RoomID
+
+	Response:
+		byte state
+
+	Notes:
+		"state" is 0 if room does not exist, 1 if the room does exist
+
+
+ -- GAMEPLAY PACKETS --
+
+ ID 3 - Room Status C->S
