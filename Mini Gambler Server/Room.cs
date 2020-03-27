@@ -10,15 +10,23 @@ namespace Mini_Gambler_Server
 {
 	internal class Room
 	{
-		public uint iD;
+		public uint ID;
+		public readonly Game game;
 		private readonly byte NumberOfPlayers;
 		private Dictionary<Socket, Player> Players = new Dictionary<Socket, Player>();
 
-		public Room(uint iD, byte numPlayers, Socket client)
+		public Room(uint ID, byte numPlayers)
 		{
-			this.iD = iD;
+			this.ID = ID;
 			NumberOfPlayers = numPlayers;
-			Players.Add(client, new Player("Player1"));
+			game = new Game(NumberOfPlayers);
 		}
+
+		public void Join(Socket player, string name)
+		{
+			Players.Add(player, new Player(name));
+		}
+
+		public bool IsNameAvailable(string name) => Players.Values.ToList().FindIndex(p => p.Name == name) < 0;
 	}
 }

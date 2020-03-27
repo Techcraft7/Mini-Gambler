@@ -15,6 +15,7 @@ namespace Mini_Gambler_Server
 	internal static class Threads
 	{
 		public static ulong ThreadID = 0;
+		public const int MAX_PACKET_SIZE = 1024;
 
 		public static void ClientHandlerThread(object c)
 		{
@@ -25,10 +26,8 @@ namespace Mini_Gambler_Server
 			{
 				try
 				{
-					byte[] data = new byte[1024];
-					Log("Waiting for data", ID, Yellow);
-					int len = client.Receive(data, data.Length, SocketFlags.None);
-					Log($"Got data: 0x{BitConverter.ToString(data, 0, len).Replace("-", string.Empty).ToUpper()}", ID, Green);
+					byte[] data = new byte[MAX_PACKET_SIZE];
+					int len = client.Receive(data, 0, MAX_PACKET_SIZE, SocketFlags.None);
 					if (data[0] == 0)
 					{
 						PacketHandlers.HandlePing(data, client);
@@ -72,7 +71,6 @@ namespace Mini_Gambler_Server
 
 		private static void Log(string text, ulong ID, ConsoleColor color = Gray)
 		{
-			Thread.Sleep(100);
 			StackTrace stackTrace = new StackTrace();
 			string name = string.Empty;
 			foreach (char c in stackTrace.GetFrame(1).GetMethod().Name)

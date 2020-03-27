@@ -15,14 +15,53 @@ namespace Mini_Gambler_Server
 		public static Packet[] PACKETS = new Packet[]
 		{
 			new Packet(0x1, new PacketMethod(CreateRoom)),
-			new Packet(0x2, new PacketMethod(JoinRoom))
+			new Packet(0x2, new PacketMethod(JoinRoom)),
+			new Packet(0x3, new PacketMethod(RoomStatus))
 		};
+
+		private static uint GetRoomID(byte[] data) => BitConverter.ToUInt32(data, 0);
+		private static Room GetRoom(uint ID) => Program.Rooms.Find(r => r.ID == ID);
+
+		private static void RoomStatus(byte[] data, Socket client)
+		{
+			try
+			{
+				uint ID = GetRoomID(data);
+				Room room = GetRoom(ID);
+
+			}
+			catch
+			{
+				ConsoleUtil.WriteLineColor("Error handling Room Status packet!", ConsoleColor.Red);
+			}
+		}
 
 		private static void JoinRoom(byte[] data, Socket client)
 		{
 			try
 			{
-
+				uint ID = GetRoomID(data);
+				Room room = GetRoom(ID);
+				byte nameLength = data[4];
+				string name = Encoding.ASCII.GetString(data.Skip(5).ToArray()).Substring(0, nameLength);
+				Console.WriteLine("Got name: " + name + " Bytes: " + BitConverter.ToString(data, 5, nameLength).ToUpper());
+				if (room != null)
+				{
+					if (room.IsNameAvailable(name) && name.ToCharArray().ToList().FindIndex(c => c < 33 || c > 126) == -1 && nameLength > 0)
+					{
+						Console.WriteLine($"Adding {name} to room {ID}");
+						client.Send(new byte[] { 1 });
+						room.Join(client, name);
+					}
+					else
+					{
+						client.Send(new byte[] { 2 });
+					}
+				}
+				else
+				{
+					client.Send(new byte[] { 0 });
+				}
 			}
 			catch
 			{
@@ -34,24 +73,21 @@ namespace Mini_Gambler_Server
 		{
 			try
 			{
-				byte[] b = new byte[4];
-				uint ID = BitConverter.ToUInt32(b, 0);
-				do
+				uint ID = uint.MaxValue;
+				while (ID == uint.MaxValue || Program.Rooms.Find(v => v.ID == ID) != null)
 				{
-					Program.SystemRNG.NextBytes(b);
-					ID = BitConverter.ToUInt32(b, 0);
+					ID = (uint)Program.SystemRNG.Next();
 				}
-				while (ID != uint.MaxValue);
-				Console.WriteLine("Creating room " + ID);
-				client.Send(b);
+				Console.WriteLine("Creating room " + ID.ToString("X8"));
+				client.Send(BitConverter.GetBytes(ID));
 				byte numPlayers = data[0];
 				if (numPlayers < 2 || numPlayers > 10)
 				{
 					client.Send(BitConverter.GetBytes(uint.MaxValue));
 					return;
 				}
-				Room r = new Room(ID, numPlayers, client);
-				Program.Rooms.Add(r);
+				Room room = new Room(ID, numPlayers);
+				Program.Rooms.Add(room);
 			}
 			catch
 			{

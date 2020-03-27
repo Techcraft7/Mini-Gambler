@@ -1,4 +1,23 @@
-﻿ 
+﻿ -- ROOMS --
+
+The server can tell the difference between each player because every Player object is tied to the clients socket
+
+ -- DATA TYPES --
+
+BOOL FORMAT:
+	
+	byte data
+
+	data == 0 - false
+	data != 0 (anything else) - true
+
+
+STRING FORMAT:
+	
+	Strings are a list of up to 100 ASCII characters
+
+	byte LENGTH
+	byte[] STRING_DATA
  
  -- PACKETS--
 
@@ -32,11 +51,13 @@ ID 1 - Create Room C->S
 		byte Players >= 2 && <= 10
 
 	Response:
-		uint RoomID
+		uint RoomID != 0xFFFFFFFF
 
 	Notes:
 		RoomID is randomly generated
 		If RoomID is uint.MaxValue (0xFFFFFFFF) the player count is invalid
+
+		The client must follow up with a "Join Room" packet to join the room
 
 		Sample C# code to create a RoomID:
 			Random rng = new Random();
@@ -51,14 +72,44 @@ ID 2 - Join Room C->S
 	Params:
 		byte ID = 2
 		uint RoomID
+		string Name
 
 	Response:
 		byte state
 
 	Notes:
-		"state" is 0 if room does not exist, 1 if the room does exist
+		"state" is 0 if room does not exist, 1 if the room does exist, 2 if the name is invalid
 
 
  -- GAMEPLAY PACKETS --
 
- ID 3 - Room Status C->S
+ID 3 - Room Status C->S
+
+	The client sends this to the server to get the status of the room
+
+	Params:
+		byte ID = 3
+		uint RoomID != 0xFFFFFFFF
+
+	Response:
+		byte state
+		bool[] online
+
+	Notes:
+		"online" is a list to see if each player is online
+		"state" values:
+			0 - room does not exist
+			1 - waiting for players
+			2 - not clients turn
+			3 - waiting for client to complete turn
+
+ID 4 - Get Coins C->S
+
+	Gets the coins for the player
+
+	Params:
+		byte ID = 4
+		uint RoomID != 0xFFFFFFFF
+
+	Response:
+		int Coins > 0
